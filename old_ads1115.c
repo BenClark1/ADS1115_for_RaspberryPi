@@ -105,14 +105,3 @@ void prime_ads1115(int channel) {
     sleep(1);
 
 }
-
-
-//what I did last time:
-//for ch0
-    //local init_config = BLANK_INIT_CONFIG = 0b01000001 
-    //next channel = 1
-    //next_ch_config = 0b01010001
-//to do for ch1
-    //init_config = 0b01010001
-    //next ch = 0
-    // next_ch_config = 0b01000001
