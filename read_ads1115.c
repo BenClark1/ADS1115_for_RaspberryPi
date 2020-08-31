@@ -83,9 +83,7 @@ void prime_ads1115(int channel) {
         exit(-1);
     }
 
-    sleep(1); //I think this waits either one second or until the signal is delivered
-    //which ever comes first
-
+    sleep(1);
 }
 
 
