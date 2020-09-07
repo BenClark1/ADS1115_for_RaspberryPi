@@ -2,12 +2,11 @@
 #ifndef ads1115_h
 #define ads1115_h
 
-#include <math.h>
 #include <stdio.h>
-#include <stdint.h>
+#include <stdint.h> //for data types
 #include <sys/types.h> // open
 #include <sys/stat.h>  // open
-#include <sys/ioctl.h> //added this as per the stack overflow(bc)
+#include <sys/ioctl.h> //need for ioct1
 #include <fcntl.h>     // open
 #include <unistd.h>    // read/write usleep
 #include <stdlib.h>    // exit
