@@ -1,5 +1,3 @@
-//new format for reading from the ADS1115 ADC
-//changing the prime function from the old format
 
 #include "read_ads1115.h"
 
@@ -8,13 +6,24 @@ uint8_t writeBuf[3]; //for writing data to the ADC
 uint8_t readBuf[2]; //for reading data from the ADC
 uint16_t raw_data_packet[2]; //a packet for storing data for both channels
 
-const float VPS = 4.096 / 32768.0; //volts per step
+const float VPS = 4.096 / 65535.0; //volts per step
+char str_out0[20];
+char str_out1[20];
+//const int sample_limit = 720000;
+const int sample_limit = 35; //720000 should give ~1/2 hour of recording
 
 int main() {
     //for 1256 ground station project, we only use channel 0 and 1 of the ADC
 
+    FILE * file_pointer; //open file to store binary data
+    //uncomment next line to write to binary file instead of text
+    //if ((file_pointer = fopen("data_out.bin", "wb")) == NULL){
+    if ((file_pointer = fopen("text_data.txt", "w+")) == NULL){
+       printf("Error: opening data file");
+       exit(1);
+    }
+
     // open device on /dev/i2c-1
-    // the default on Raspberry Pi B
     if ((file_descriptor = open("/dev/i2c-1", O_RDWR)) < 0) {
         printf("Error: Couldn't open device! %d\n", file_descriptor);
         exit (1);
@@ -26,16 +35,23 @@ int main() {
         exit (1);
     }
 
-    for (int i=0; i<=1000; i++) { //read data repeatedly from each channel
-        prime_ads1115(0);
+    for (int i=0; i<sample_limit; i++) {
+        prime_ads1115(0); //read from channel 0
         raw_data_packet[0] = readReg(0);
 
-        prime_ads1115(1);
+        prime_ads1115(1); //read from channel 1
         raw_data_packet[1] = readReg(1);
-        //delay not needed here since it's in the prime function
+
+        //use fwrite() for writing to binary file or fputs() for text file
+        //fwrite(&raw_data_packet, 1, sizeof(raw_data_packet), file_pointer);
+        sprintf(str_out0, "%d\n", raw_data_packet[0]);
+        sprintf(str_out1, "%d\n", raw_data_packet[1]);
+        fputs(str_out0, file_pointer);
+        fputs(str_out1, file_pointer);
     }
 
     close(file_descriptor);
+    fclose(file_pointer);
 
     return 0;
 }
@@ -56,7 +72,7 @@ uint16_t readReg(int channel) {
 
     // convert display results
     uint16_t result = readBuf[0] << 8 | readBuf[1];
-
+    //accuracy +/- one bit, so to remove any negative numbers:
     if (result < 0)   result = 0;
 
     float voltage = result * VPS; // convert to voltage
@@ -70,12 +86,12 @@ uint16_t readReg(int channel) {
 void prime_ads1115(int channel) {
     //the channel argument takes 0 or 1 for AIN0 or AIN1
 
-    //determine initial configuration and next channel config
-    uint8_t init_config = BLANK_INIT_CONFIG | (channel << 4);
+    //determine initial configuration
+    uint8_t config = BLANK_INIT_CONFIG | (channel << 4);
 
     //place values in writeBuf to be written
     writeBuf[0] = 1; //1 tells the chip that we're writing to the config register
-    writeBuf[1] = init_config; 
+    writeBuf[1] = config; 
     writeBuf[2] = CONFIG_LSBS;
 
     if (write(file_descriptor, writeBuf, 3) != 3) { //write 3 bytes
@@ -83,7 +99,8 @@ void prime_ads1115(int channel) {
         exit(-1);
     }
 
-    sleep(1);
+    //max data rate for ADS1115 is 860 SPS
+    usleep(1250); //results in about 800 samples per second
 }
 
 
